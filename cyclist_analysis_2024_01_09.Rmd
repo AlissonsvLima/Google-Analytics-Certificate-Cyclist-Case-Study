@@ -1,0 +1,233 @@
+---
+title: "cyclist_analysis_2024_01_09"
+author: "Alisson Vinicius Salvador de Lima"
+date: "2024-01-09"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Analysis
+
+In this report, it will be done some resumes, for further analysis in dashboards. All resumes will ever try to frame different possible aspects that define to different rider profiles - member riders or casual riders.
+
+# Preparing the datasets
+
+## Install Packages
+
+```{r install}
+
+install.packages("skimr") # Cleaning
+install.packages("tidyverse") # Data manipulation
+install.packages("janitor") # Cleaning
+install.packages("stringr") # Cleaning strings
+install.packages("lubridate") # Date manipulation
+```
+
+## Loading Packages
+
+```{r load packages}
+
+library(tidyverse)
+library(skimr)
+library(janitor)
+library(dplyr)
+library(tidyr)        
+library(ggplot2)
+library(stringr)
+library(lubridate)
+
+```
+
+## Load Dataset
+
+Here we load the dataset previously processed on previous report "cyclist_cleaning_2024_01_08.Rmd".
+
+```{r load data}
+
+# for general analysis
+df_analysis_01 <- read.csv("data/processed_data_2024_01_08.csv")
+
+# for hour analysis
+df_hour <- read.csv("data/df_for_hour_analysis.csv")
+
+```
+
+## Check Integrity
+
+```{r glimpse}
+
+glimpse(df_analysis_01)
+
+```
+
+# Summarizing
+
+## Summarize Ride Length and Distance Values
+
+Count members and casual users
+
+```{r group and summarize}
+
+member_casual_count <- df_analysis_01 %>%
+  group_by(member_casual) %>%
+  summarise(count = n())
+
+```
+
+## Descriptive analysis for all data as a whole
+
+```{r group and summarize}
+
+summary_all <- df_analysis_01 %>%
+  summarise(average_lenth=mean(ride_length), 
+            min_length=min(ride_length),
+            max_length=max(ride_length),
+            st_length= sd(ride_length),
+            average_distance=mean(distance),
+            min_distance=min(distance),
+            max_distance=max(distance),
+            st_distance= sd(distance))
+
+```
+
+## Descriptive analysis for each type rider profile (member or casual) 
+
+```{r group and summarize}
+
+summary_member_casual <- df_analysis_01 %>%
+  group_by(member_casual) %>%
+  summarise(average_lenth=mean(ride_length),
+            min_length=min(ride_length),
+            max_length=max(ride_length),
+            st_length= sd(ride_length),
+            average_distance=mean(distance),
+            min_distance=min(distance),
+            max_distance=max(distance),
+            st_distance= sd(distance))
+
+```
+
+## Summary Table
+
+Just formatting a new table to fit the antecedent table
+
+```{r descriptive merge}
+
+d <- data.frame(member_casual = c("both"))
+
+summary_all <- cbind(d, summary_all)
+
+summary <- rbind(summary_all, summary_member_casual)
+
+```
+
+```{r summary table}
+
+View(summary)
+
+```
+
+
+## Let us check out the length distribution over member and casual riders on a boxplot
+
+Check length
+
+```{r boxplot len} 
+
+ggplot(df_analysis_01, aes(x = member_casual, y = ride_length)) +
+  geom_boxplot()
+
+```
+Check distance
+
+```{r boxplot dist} 
+
+ggplot(df_analysis_01, aes(x = member_casual, y = distance)) +
+  geom_boxplot()
+
+```
+## Distribuition
+
+Check Length
+
+```{r histogram len} 
+
+ggplot(df_analysis_01, aes(x = ride_length)) +
+  geom_histogram() +
+  facet_wrap(~member_casual, ncol = 2)
+
+
+```
+Check distance
+
+```{r histogram dist} 
+
+ggplot(df_analysis_01, aes(x = distance)) +
+  geom_histogram() +
+  facet_wrap(~ member_casual, ncol = 2)
+
+```
+
+
+## Summarize Information by Day
+
+```{r sumarize day}
+
+summary_day <- df_analysis_01 %>%
+  group_by(member_casual, day_of_week, ride_month, ride_day) %>%
+  summarise(average_lenth=mean(ride_length),
+            min_length=min(ride_length),
+            max_length=max(ride_length),
+            average_distance=mean(distance),
+            min_distance=min(distance),
+            max_distance=max(distance),
+            daily_rides = n())
+
+```
+## Summarize the number of rides by day and rideable type
+
+```{r sumarize rideable type}
+
+summary_rideable_type <- df_analysis_01 %>%
+  group_by(member_casual,rideable_type, day_of_week, ride_month, ride_day) %>%
+  summarise(average_lenth=mean(ride_length),
+            average_distance=mean(distance),
+            type_rides_count = n())
+
+```
+## Summarize by Weekday and Hour
+```{r}
+
+summary_hour <- df_hour %>%
+  group_by(member_casual, day_of_week, ride_hour) %>%
+  summarise(average_length = mean(ride_length),
+    hour_ride_count = n())
+
+```
+
+
+## Get the month names
+
+These transformations are optional
+
+```{r transform month}
+
+summary_day$ride_month <- month.name[summary_day$ride_month]
+
+summary_rideable_type$ride_month <- month.name[summary_rideable_type$ride_month]
+
+```
+
+## Export the tables to be analysed in dinamic tables
+
+```{r export}
+
+write.csv(summary_day, "data/summary_data_count_2024_01_12.csv", row.names = FALSE)
+write.csv(summary, "data/summary_data_length_2024_01_10.csv", row.names = FALSE)
+write.csv(summary_rideable_type, "data/summary_data_rideable_type.csv", row.names = FALSE)
+write.csv(summary_hour, "data/summary_hour.csv", row.names = FALSE)
+
+```
